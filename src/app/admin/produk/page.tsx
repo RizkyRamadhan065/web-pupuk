@@ -1,9 +1,11 @@
 "use client";
 import { useState, useEffect } from "react";
-import { db } from "@/app/services/firebaseConfig"; // Konfigurasi Firebase
+import { db } from "@/app/services/firebaseConfig";
 import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from "firebase/firestore";
 import DashboardLayout from "@/app/components/DashboardLayout";
 import axios from "axios";
+import { motion } from "framer-motion";
+import Image from "next/image";
 
 interface Product {
   id: string;
@@ -25,10 +27,10 @@ export default function ProdukPage() {
     gambar: "",
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [notification, setNotification] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editedProduct, setEditedProduct] = useState<Partial<Product>>({});
+  const [editProduct, setEditProduct] = useState<Product | null>(null);
 
-  // Ambil data produk & kategori dari Firestore
   useEffect(() => {
     const fetchData = async () => {
       const produkSnapshot = await getDocs(collection(db, "produk"));
@@ -51,16 +53,15 @@ export default function ProdukPage() {
     fetchData();
   }, []);
 
-  // Upload gambar ke Cloudinary
   const uploadImage = async () => {
     if (!imageFile) return null;
 
     const formData = new FormData();
     formData.append("file", imageFile);
-    formData.append("upload_preset", "your_upload_preset"); // Ganti dengan upload preset Cloudinary Anda
+    formData.append("upload_preset", "webPupuk");
 
     try {
-      const response = await axios.post("https://api.cloudinary.com/v1_1/your_cloud_name/image/upload", formData);
+      const response = await axios.post("https://api.cloudinary.com/v1_1/dly9dkvgy/image/upload", formData);
       return response.data.secure_url;
     } catch (error) {
       console.error("Error uploading image:", error);
@@ -68,7 +69,6 @@ export default function ProdukPage() {
     }
   };
 
-  // Tambah produk baru
   const handleAddProduct = async () => {
     if (!newProduct.nama_produk || !newProduct.id_kategori || !newProduct.harga || !newProduct.deskripsi) {
       return alert("Semua bidang harus diisi!");
@@ -86,22 +86,29 @@ export default function ProdukPage() {
     setProdukList([...produkList, { id: docRef.id, ...newProduct, harga: Number(newProduct.harga), gambar: imageUrl }]);
     setNewProduct({ nama_produk: "", id_kategori: "", harga: "", deskripsi: "", gambar: "" });
     setImageFile(null);
+    setNotification("Produk berhasil ditambahkan!");
+    setTimeout(() => setNotification(null), 3000);
   };
 
-  // Hapus produk
   const handleDeleteProduct = async (id: string) => {
     if (!confirm("Apakah Anda yakin ingin menghapus produk ini?")) return;
 
     await deleteDoc(doc(db, "produk", id));
     setProdukList(produkList.filter((prod) => prod.id !== id));
+    setNotification("Produk berhasil dihapus!");
+    setTimeout(() => setNotification(null), 3000);
   };
 
   return (
     <DashboardLayout activePage="Produk">
       <div className="p-6 bg-white rounded-lg shadow-md">
         <h1 className="text-2xl font-bold mb-4">Manajemen Produk</h1>
+        {notification && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="bg-green-500 text-white p-3 rounded mb-4">
+            {notification}
+          </motion.div>
+        )}
 
-        {/* Form Tambah Produk */}
         <div className="mb-6">
           <input type="text" placeholder="Nama Produk" className="border p-2 rounded w-full mb-2" value={newProduct.nama_produk} onChange={(e) => setNewProduct({ ...newProduct, nama_produk: e.target.value })} />
           <select className="border p-2 rounded w-full mb-2" value={newProduct.id_kategori} onChange={(e) => setNewProduct({ ...newProduct, id_kategori: e.target.value })}>
@@ -115,6 +122,31 @@ export default function ProdukPage() {
           <input type="file" onChange={(e) => setImageFile(e.target.files?.[0] || null)} />
           <button className="bg-blue-500 text-white p-2 rounded mt-2" onClick={handleAddProduct}>Tambah Produk</button>
         </div>
+
+        <table className="w-full border-collapse border border-gray-200 mt-6">
+          <thead>
+            <tr className="bg-gray-100">
+              <th className="border p-2">Nama</th>
+              <th className="border p-2">Kategori</th>
+              <th className="border p-2">Harga</th>
+              <th className="border p-2">Gambar</th>
+              <th className="border p-2">Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            {produkList.map((produk) => (
+              <tr key={produk.id} className="border">
+                <td className="border p-2">{produk.nama_produk}</td>
+                <td className="border p-2">{kategoriList.find(k => k.id === produk.id_kategori)?.nama_kategori || "-"}</td>
+                <td className="border p-2">{produk.harga}</td>
+                <td className="border p-2"><Image src={produk.gambar} alt="Produk" width={50} height={50} /></td>
+                <td className="border p-2">
+                  <button onClick={() => handleDeleteProduct(produk.id)} className="bg-red-500 text-white px-2 py-1 rounded">Hapus</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </DashboardLayout>
   );
