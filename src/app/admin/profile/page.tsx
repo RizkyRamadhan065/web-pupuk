@@ -1,44 +1,119 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { db } from "@/app/services/firebaseConfig";
+import { collection, query, where, getDocs, updateDoc } from "firebase/firestore";
 import DashboardLayout from "@/app/components/DashboardLayout";
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState({
-    nama: "Admin Pupuk",
-    email: "admin@example.com",
-    phone: "081234567890",
-    foto: "https://via.placeholder.com/150", // Placeholder gambar
+    id: "",
+    nama: "",
+    email: "",
+    phone: "",
+    foto: "https://via.placeholder.com/150",
   });
+  const [newPassword, setNewPassword] = useState("");
 
-  const [passwords, setPasswords] = useState({
-    oldPassword: "",
-    newPassword: "",
-    confirmPassword: "",
-  });
+  const username = "admin"; // Harus diganti dengan cara mendapatkan username dari session atau state.
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const adminRef = collection(db, "admin");
+        const q = query(adminRef, where("username", "==", username)); // Query berdasarkan username
+
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+          const docSnap = querySnapshot.docs[0];
+          const data = docSnap.data();
+
+          setProfile({
+            id: docSnap.id,
+            nama: data.nama || "",
+            email: data.email || "",
+            phone: data.phone || "",
+            foto: data.foto || "https://via.placeholder.com/150",
+          });
+
+          console.log("Data admin ditemukan:", data);
+        } else {
+          console.log("Admin tidak ditemukan!");
+        }
+      } catch (error) {
+        console.error("Error mengambil data admin:", error);
+      }
+    };
+
+    fetchProfile();
+  }, []);
 
   const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setProfile({ ...profile, [e.target.name]: e.target.value });
   };
 
-  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPasswords({ ...passwords, [e.target.name]: e.target.value });
-  };
-
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const imageUrl = URL.createObjectURL(file);
-      setProfile({ ...profile, foto: imageUrl });
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", "webPupuk"); // Sesuaikan dengan upload preset Cloudinary
+
+    try {
+      const response = await fetch("https://api.cloudinary.com/v1_1/dly9dkvgy/image/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+      if (data.secure_url) {
+        setProfile({ ...profile, foto: data.secure_url });
+
+        const docRef = collection(db, "admin");
+        const q = query(docRef, where("username", "==", username));
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+          const adminDoc = querySnapshot.docs[0].ref;
+          await updateDoc(adminDoc, { foto: data.secure_url });
+          alert("Foto profil berhasil diperbarui!");
+        }
+      }
+    } catch (error) {
+      console.error("Error uploading to Cloudinary:", error);
     }
   };
 
-  const handlePasswordUpdate = () => {
-    if (passwords.newPassword !== passwords.confirmPassword) {
-      alert("Konfirmasi password baru tidak cocok!");
+  const handleProfileUpdate = async () => {
+    const docRef = collection(db, "admin");
+    const q = query(docRef, where("username", "==", username));
+    const querySnapshot = await getDocs(q);
+
+    if (!querySnapshot.empty) {
+      const adminDoc = querySnapshot.docs[0].ref;
+      await updateDoc(adminDoc, {
+        nama: profile.nama,
+        phone: profile.phone,
+      });
+      alert("Profil berhasil diperbarui!");
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (!newPassword) {
+      alert("Masukkan password baru!");
       return;
     }
-    alert("Password berhasil diubah!");
-    setPasswords({ oldPassword: "", newPassword: "", confirmPassword: "" });
+
+    const docRef = collection(db, "admin");
+    const q = query(docRef, where("username", "==", username));
+    const querySnapshot = await getDocs(q);
+
+    if (!querySnapshot.empty) {
+      const adminDoc = querySnapshot.docs[0].ref;
+      await updateDoc(adminDoc, { password: newPassword });
+      alert("Password berhasil diperbarui!");
+      setNewPassword("");
+    }
   };
 
   return (
@@ -68,8 +143,8 @@ export default function ProfilePage() {
             type="email"
             name="email"
             value={profile.email}
-            onChange={handleProfileChange}
             className="w-full p-2 border rounded mt-1"
+            disabled
           />
 
           <label className="block text-sm font-semibold mt-3">No. HP</label>
@@ -82,42 +157,29 @@ export default function ProfilePage() {
           />
         </div>
 
+        <button
+          onClick={handleProfileUpdate}
+          className="mt-4 w-full bg-green-600 text-white p-2 rounded hover:bg-green-700"
+        >
+          Simpan Perubahan Profil
+        </button>
+
         {/* Ganti Password */}
         <div className="mt-6">
-          <h2 className="text-lg font-bold">Ganti Password</h2>
-
-          <label className="block text-sm font-semibold mt-3">Password Lama</label>
-          <input
-            type="password"
-            name="oldPassword"
-            value={passwords.oldPassword}
-            onChange={handlePasswordChange}
-            className="w-full p-2 border rounded mt-1"
-          />
-
-          <label className="block text-sm font-semibold mt-3">Password Baru</label>
+          <label className="block text-sm font-semibold">Password Baru</label>
           <input
             type="password"
             name="newPassword"
-            value={passwords.newPassword}
-            onChange={handlePasswordChange}
-            className="w-full p-2 border rounded mt-1"
-          />
-
-          <label className="block text-sm font-semibold mt-3">Konfirmasi Password Baru</label>
-          <input
-            type="password"
-            name="confirmPassword"
-            value={passwords.confirmPassword}
-            onChange={handlePasswordChange}
+            value={newPassword}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewPassword(e.target.value)}
             className="w-full p-2 border rounded mt-1"
           />
 
           <button
-            onClick={handlePasswordUpdate}
+            onClick={handleChangePassword}
             className="mt-4 w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700"
           >
-            Simpan Perubahan
+            Ubah Password
           </button>
         </div>
       </div>

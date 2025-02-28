@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { db } from "@/app/services/firebaseConfig";
 import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from "firebase/firestore";
 import DashboardLayout from "@/app/components/DashboardLayout";
+import EditProductModal from "@/app/components/EditProductModal"; // Sesuaikan path jika perlu
 import axios from "axios";
 import { motion } from "framer-motion";
 import Image from "next/image";
@@ -28,8 +29,9 @@ export default function ProdukPage() {
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editProduct, setEditProduct] = useState<Product | null>(null);
+  
 
   useEffect(() => {
     const fetchData = async () => {
@@ -99,6 +101,18 @@ export default function ProdukPage() {
     setTimeout(() => setNotification(null), 3000);
   };
 
+  const handleEditProduct = (product: Product) => {
+    setEditProduct(product);
+    setIsEditModalOpen(true);
+  };
+
+  const handleUpdateProduct = (updatedProduct: Product) => {
+    setProdukList((prevProdukList) =>
+      prevProdukList.map((prod) => (prod.id === updatedProduct.id ? updatedProduct : prod))
+    );
+  };
+  
+
   return (
     <DashboardLayout activePage="Produk">
       <div className="p-6 bg-white rounded-lg shadow-md">
@@ -124,30 +138,54 @@ export default function ProdukPage() {
         </div>
 
         <table className="w-full border-collapse border border-gray-200 mt-6">
-          <thead>
-            <tr className="bg-gray-100">
-              <th className="border p-2">Nama</th>
-              <th className="border p-2">Kategori</th>
-              <th className="border p-2">Harga</th>
-              <th className="border p-2">Gambar</th>
-              <th className="border p-2">Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            {produkList.map((produk) => (
-              <tr key={produk.id} className="border">
-                <td className="border p-2">{produk.nama_produk}</td>
-                <td className="border p-2">{kategoriList.find(k => k.id === produk.id_kategori)?.nama_kategori || "-"}</td>
-                <td className="border p-2">{produk.harga}</td>
-                <td className="border p-2"><Image src={produk.gambar} alt="Produk" width={50} height={50} /></td>
-                <td className="border p-2">
-                  <button onClick={() => handleDeleteProduct(produk.id)} className="bg-red-500 text-white px-2 py-1 rounded">Hapus</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
+        <thead>
+  <tr className="bg-gray-100 text-center">
+    <th className="border p-2">No</th>
+    <th className="border p-2">Nama</th>
+    <th className="border p-2">Kategori</th>
+    <th className="border p-2">Harga</th>
+    <th className="border p-2">Gambar</th>
+    <th className="border p-2">Aksi</th>
+  </tr>
+</thead>
+<tbody>
+  {produkList.map((produk, index) => (
+    <tr key={produk.id} className="border text-center">
+      <td className="border p-2">{index + 1}</td> {/* Tambahan kolom nomor */}
+      <td className="border p-2">{produk.nama_produk}</td>
+      <td className="border p-2">{kategoriList.find(k => k.id === produk.id_kategori)?.nama_kategori || "-"}</td>
+      <td className="border p-2">{produk.harga}</td>
+      <td className="border p-2">
+        <div className="flex justify-center">
+          <Image src={produk.gambar} alt="Produk" width={50} height={50} />
+        </div>
+      </td>
+      <td className="border p-2">
+        <div className="flex justify-center space-x-2">
+          <button onClick={() => handleEditProduct(produk)} className="bg-yellow-500 text-white px-3 py-1 rounded">
+            Edit
+          </button>
+          <button onClick={() => handleDeleteProduct(produk.id)} className="bg-red-500 text-white px-3 py-1 rounded">
+            Hapus
+          </button>
+        </div>
+      </td>
+    </tr>
+  ))}
+</tbody>
+
         </table>
       </div>
+
+      {editProduct && (
+  <EditProductModal
+    isOpen={isEditModalOpen}
+    onClose={() => setIsEditModalOpen(false)}
+    product={editProduct}
+    onUpdate={handleUpdateProduct}
+  />
+)}
+
     </DashboardLayout>
   );
 }
