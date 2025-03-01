@@ -144,6 +144,7 @@ export default function ProdukPage() {
     <th className="border p-2">Nama</th>
     <th className="border p-2">Kategori</th>
     <th className="border p-2">Harga</th>
+    <th className="border p-2">Deskripsi</th>
     <th className="border p-2">Gambar</th>
     <th className="border p-2">Aksi</th>
   </tr>
@@ -154,7 +155,8 @@ export default function ProdukPage() {
       <td className="border p-2">{index + 1}</td> {/* Tambahan kolom nomor */}
       <td className="border p-2">{produk.nama_produk}</td>
       <td className="border p-2">{kategoriList.find(k => k.id === produk.id_kategori)?.nama_kategori || "-"}</td>
-      <td className="border p-2">{produk.harga}</td>
+      <td className="border p-2">Rp.{produk.harga}</td>
+      <td className="border p-2">{produk.deskripsi}</td>
       <td className="border p-2">
         <div className="flex justify-center">
           <Image src={produk.gambar} alt="Produk" width={50} height={50} />

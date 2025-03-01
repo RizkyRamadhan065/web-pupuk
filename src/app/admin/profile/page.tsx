@@ -1,8 +1,10 @@
 "use client";
 import { useState, useEffect } from "react";
+import bcrypt from "bcryptjs";
 import { db } from "@/app/services/firebaseConfig";
 import { collection, query, where, getDocs, updateDoc } from "firebase/firestore";
 import DashboardLayout from "@/app/components/DashboardLayout";
+import ChangePasswordModal from "@/app/components/ChangePasswordModal";
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState({
@@ -12,15 +14,15 @@ export default function ProfilePage() {
     phone: "",
     foto: "https://via.placeholder.com/150",
   });
-  const [newPassword, setNewPassword] = useState("");
 
-  const username = "admin"; // Harus diganti dengan cara mendapatkan username dari session atau state.
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const username = "admin"; // Gantilah dengan session atau state login yang benar.
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         const adminRef = collection(db, "admin");
-        const q = query(adminRef, where("username", "==", username)); // Query berdasarkan username
+        const q = query(adminRef, where("username", "==", username));
 
         const querySnapshot = await getDocs(q);
         if (!querySnapshot.empty) {
@@ -51,6 +53,7 @@ export default function ProfilePage() {
     setProfile({ ...profile, [e.target.name]: e.target.value });
   };
 
+  // 🔹 Fungsi untuk mengganti foto profil
   const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -67,11 +70,14 @@ export default function ProfilePage() {
 
       const data = await response.json();
       if (data.secure_url) {
-        setProfile({ ...profile, foto: data.secure_url });
+        // 🔹 Update foto di state terlebih dahulu agar UI langsung berubah
+        setProfile((prev) => ({ ...prev, foto: data.secure_url }));
 
+        // 🔹 Simpan URL foto ke Firestore
         const docRef = collection(db, "admin");
         const q = query(docRef, where("username", "==", username));
         const querySnapshot = await getDocs(q);
+
         if (!querySnapshot.empty) {
           const adminDoc = querySnapshot.docs[0].ref;
           await updateDoc(adminDoc, { foto: data.secure_url });
@@ -98,22 +104,32 @@ export default function ProfilePage() {
     }
   };
 
-  const handleChangePassword = async () => {
-    if (!newPassword) {
-      alert("Masukkan password baru!");
-      return;
-    }
+  const handleChangePassword = async (oldPassword: string, newPassword: string) => {
+    try {
+      const docRef = collection(db, "admin");
+      const q = query(docRef, where("username", "==", username));
+      const querySnapshot = await getDocs(q);
 
-    const docRef = collection(db, "admin");
-    const q = query(docRef, where("username", "==", username));
-    const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        const adminDoc = querySnapshot.docs[0];
+        const adminData = adminDoc.data();
 
-    if (!querySnapshot.empty) {
-      const adminDoc = querySnapshot.docs[0].ref;
-      await updateDoc(adminDoc, { password: newPassword });
-      alert("Password berhasil diperbarui!");
-      setNewPassword("");
+        // 🔹 Verifikasi password lama dengan bcrypt
+        const isMatch = await bcrypt.compare(oldPassword, adminData.password);
+        if (!isMatch) {
+          return false; // Password lama salah
+        }
+
+        // 🔹 Hash password baru sebelum menyimpannya ke Firestore
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        await updateDoc(adminDoc.ref, { password: hashedPassword });
+
+        return true;
+      }
+    } catch (error) {
+      console.error("Gagal mengupdate password:", error);
     }
+    return false;
   };
 
   return (
@@ -123,8 +139,17 @@ export default function ProfilePage() {
 
         {/* Foto Profil */}
         <div className="flex flex-col items-center">
-          <img src={profile.foto} alt="Foto Profil" className="w-32 h-32 rounded-full object-cover" />
-          <input type="file" accept="image/*" className="mt-3 text-sm" onChange={handlePhotoChange} />
+          <img
+            src={profile.foto}
+            alt="Foto Profil"
+            className="w-32 h-32 rounded-full object-cover"
+          />
+          <input
+            type="file"
+            accept="image/*"
+            className="mt-3 text-sm"
+            onChange={handlePhotoChange}
+          />
         </div>
 
         {/* Form Profil */}
@@ -164,25 +189,21 @@ export default function ProfilePage() {
           Simpan Perubahan Profil
         </button>
 
-        {/* Ganti Password */}
-        <div className="mt-6">
-          <label className="block text-sm font-semibold">Password Baru</label>
-          <input
-            type="password"
-            name="newPassword"
-            value={newPassword}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewPassword(e.target.value)}
-            className="w-full p-2 border rounded mt-1"
-          />
-
-          <button
-            onClick={handleChangePassword}
-            className="mt-4 w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700"
-          >
-            Ubah Password
-          </button>
-        </div>
+        {/* Tombol untuk membuka modal */}
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="mt-4 w-full bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700"
+        >
+          Ganti Password
+        </button>
       </div>
+
+      {/* Modal Ganti Password */}
+      <ChangePasswordModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSubmit={handleChangePassword}
+      />
     </DashboardLayout>
   );
 }
