@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { db } from "@/app/services/firebaseConfig";
 import { collection, getDocs } from "firebase/firestore";
 import DashboardLayout from "@/app/components/DashboardLayout";
+import Meta from "@/app/components/Meta";
 
 export default function DashboardPage() {
   const [adminName, setAdminName] = useState<string | null>(null);
@@ -35,6 +36,7 @@ export default function DashboardPage() {
 
   return (
     <DashboardLayout activePage="Beranda">
+      <Meta title="Dashboard Admin | Toko Pupuk Online" description="Pantau dan kelola produk, stok, serta kategori pupuk dengan dashboard admin." />
       <h1 className="text-2xl font-bold mb-6">
         Selamat Datang, <span className="text-blue-600">{adminName || "Admin"}!</span>
       </h1>

@@ -7,6 +7,7 @@ import EditProductModal from "@/app/components/EditProductModal"; // Sesuaikan p
 import axios from "axios";
 import { motion } from "framer-motion";
 import Image from "next/image";
+import Meta from "@/app/components/Meta";
 
 interface Product {
   id: string;
@@ -115,6 +116,7 @@ export default function ProdukPage() {
 
   return (
     <DashboardLayout activePage="Produk">
+      <Meta title="Kelola Produk | Toko Pupuk Online" description="Tambah, edit, dan kelola daftar produk pupuk yang tersedia di toko online Anda." />
       <div className="p-6 bg-white rounded-lg shadow-md">
         <h1 className="text-2xl font-bold mb-4">Manajemen Produk</h1>
         {notification && (

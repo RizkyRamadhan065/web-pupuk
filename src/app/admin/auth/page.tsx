@@ -6,6 +6,7 @@ import { db } from "@/app/services/firebaseConfig";
 import { collection, getDocs } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import bcrypt from "bcryptjs";
+import Meta from "@/app/components/Meta";
 
 interface Admin {
   id: string;
@@ -54,6 +55,8 @@ export default function Login() {
 
   return (
     <div className="relative flex flex-col items-center justify-center min-h-screen overflow-hidden">
+      <Meta title="Login Admin | Toko Pupuk Online" description="Masuk ke halaman admin untuk mengelola toko pupuk online dengan mudah dan cepat." />
+
       <motion.div 
         initial={{ backgroundPosition: "0% 50%" }}
         animate={{ backgroundPosition: "100% 50%" }}

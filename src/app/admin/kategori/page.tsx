@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { db } from "@/app/services/firebaseConfig"; // Pastikan sudah ada konfigurasi Firebase
 import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from "firebase/firestore";
 import DashboardLayout from "@/app/components/DashboardLayout";
+import Meta from "@/app/components/Meta";
 
 export default function KategoriPage() {
   const [kategoriList, setKategoriList] = useState<{ id: string; nama_kategori: string }[]>([]);
@@ -59,6 +60,7 @@ export default function KategoriPage() {
 
   return (
     <DashboardLayout activePage="Kategori">
+      <Meta title="Kategori Produk | Toko Pupuk Online" description="Jelajahi berbagai kategori pupuk untuk kebutuhan pertanian dan perkebunan Anda." />
       <div className="max-w-xl mx-auto bg-white p-6 shadow-lg rounded-lg">
         <h1 className="text-2xl font-bold mb-4">Manajemen Kategori</h1>
 

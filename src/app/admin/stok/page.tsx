@@ -5,6 +5,7 @@ import { db } from "@/app/services/firebaseConfig";
 import { collection, addDoc, getDocs, deleteDoc, doc } from "firebase/firestore";
 import DashboardLayout from "@/app/components/DashboardLayout";
 import EditStockModal from "@/app/components/EditStockModal";
+import Meta from "@/app/components/Meta";
 
 interface Product {
   id: string;
@@ -93,6 +94,7 @@ export default function StokPage() {
 
   return (
     <DashboardLayout activePage="Stok">
+      <Meta title="Manajemen Stok | Toko Pupuk Online" description="Pantau dan atur ketersediaan stok pupuk di berbagai lokasi penyimpanan." />
       <div className="p-6 bg-white rounded-lg shadow-md">
         <h1 className="text-2xl font-bold mb-4">Manajemen Stok</h1>
 

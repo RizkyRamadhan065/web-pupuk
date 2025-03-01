@@ -5,6 +5,7 @@ import { db } from "@/app/services/firebaseConfig";
 import { collection, query, where, getDocs, updateDoc } from "firebase/firestore";
 import DashboardLayout from "@/app/components/DashboardLayout";
 import ChangePasswordModal from "@/app/components/ChangePasswordModal";
+import Meta from "@/app/components/Meta";
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState({
@@ -134,6 +135,7 @@ export default function ProfilePage() {
 
   return (
     <DashboardLayout activePage="Profile">
+      <Meta title="Profil Admin | Toko Pupuk Online" description="Lihat dan perbarui informasi profil admin di toko pupuk online." />
       <div className="max-w-2xl mx-auto bg-white p-6 shadow-lg rounded-lg">
         <h1 className="text-2xl font-bold mb-4">Profile</h1>
 
